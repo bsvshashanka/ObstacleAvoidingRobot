@@ -1,0 +1,155 @@
+#include <AFMotor.h>
+#include <Servo.h>
+#include <NewPing.h>
+AF_DCMotor motor1(1);
+AF_DCMotor motor2(2);
+AF_DCMotor motor3(3);
+AF_DCMotor motor4(4);
+#define trigPinR A0 //trig pin of right ultrasonic sensor
+#define echoPinR A1 // echo pin of right ultrasonic sensor
+#define trigPinL A2 //trig pin of left ultrasonic sensor
+#define echoPinL A3 // echo pin of left ultrasonic sensor
+#define trigPinC A4 //trig pin of central ultrasonic sensor
+#define echoPinC A5 //echo pin of central ultrasonic sensor
+#define MAX_SPEED 255 //maximum speed that the car can go 
+
+NewPing sonarR(trigPinR, echoPinR, 200); //function to get the distance to the right of the car
+NewPing sonarC(trigPinC, echoPinC, 200); //function to get the distance to the center of the car
+NewPing sonarL(trigPinL, echoPinL, 200); //function to get the distance to the left of the car
+Servo servoR, servoL, servoC; //creating 3 servos that will control the movement of the ultrasonic sensors
+void setup() {
+  // put your setup code here, to run once:
+  Serial.begin(9600); 
+  servoR.attach(9); 
+  servoL.attach(10);
+  servoC.attach(11);
+  //now initialising each servo to its default position
+  servoR.write(0);
+  servoC.write(0);
+  servoL.write(0);
+  delay(100);
+
+}
+
+void loop() {
+  // put your main code here, to run repeatedly:
+  //distC,distR,distL are the distances of the nearest object to the center, right and left respectively
+  int distR = 0;
+  int distL = 0;
+  int distC = getDistC(); 
+  if (distC <= 15) {
+    carStop();
+    delay(100);
+    moveBack();
+    delay(300);
+    carStop();
+    delay(200);
+    distR = getDistR();
+    distL = getDistL();
+    if (distR > distL) {
+      rightTurn();
+      moveFwd();
+    }
+    else if (distL > distR) {
+      leftTurn();
+      moveFwd();
+    }
+  }
+  else if(distC>15) {
+    moveFwd();
+  }
+
+}
+int getDistC() {           //function to get max distance of the object straight ahead of the car (angle ranging from -45 degrees to +45 degrees, total covering 90 degrees)
+  int ans = 0;
+  for (int i = -45; i <= 45; i = i + 15) {
+    servoC.write(i);
+    delay(100);
+    int temp = sonarC.ping_cm();
+    delay(100);
+    if (temp > ans) {
+      ans = temp;
+    }
+  }
+  return ans;
+}
+int getDistR() {            //function to get max distance of the object to the right of the car (angle ranging from -45 degrees to +45 degrees, total covering 90 degrees)
+  int ans = 0;
+  for (int i = -45; i <= 45; i = i + 15) {
+    servoR.write(i);
+    delay(50);
+    int temp = sonarR.ping_cm();
+    delay(50);
+    if (temp > ans) {
+      ans = temp;
+    }
+  }
+  return ans;
+}
+int getDistL() {            //function to get max distance of the object to the left of the car (angle ranging from -45 degrees to +45 degrees, total covering 90 degrees)
+  int ans = 0;
+  for (int i = -45; i <= 45; i = i + 15) {
+    servoL.write(i);
+    delay(50);
+    int temp = sonarL.ping_cm();
+    delay(50);
+    if (temp > ans) {
+      ans = temp;
+    }
+  }
+  return ans;
+}
+void carStop() {              //this function is to stop the car
+  motor1.run(RELEASE);
+  motor2.run(RELEASE);
+  motor3.run(RELEASE);
+  motor4.run(RELEASE);
+}
+void rightTurn() {            //this function is to turn right
+  motor1.run(FORWARD);
+  motor2.run(FORWARD);
+  motor3.run(BACKWARD);
+  motor4.run(BACKWARD);
+  delay(500);
+  motor1.run(FORWARD);
+  motor2.run(FORWARD);
+  motor3.run(FORWARD);
+  motor4.run(FORWARD);
+}
+void leftTurn() {             //this function is to turn left
+  motor1.run(BACKWARD);
+  motor2.run(BACKWARD);
+  motor3.run(FORWARD);
+  motor4.run(FORWARD);
+  delay(500);
+  motor1.run(FORWARD);
+  motor2.run(FORWARD);
+  motor3.run(FORWARD);
+  motor4.run(FORWARD);
+}
+void moveBack() {             //this function is to move the car backward
+  motor1.run(BACKWARD);
+  motor2.run(BACKWARD);
+  motor3.run(BACKWARD);
+  motor4.run(BACKWARD);
+  for (int speedSet = 0; speedSet < MAX_SPEED; speedSet += 5) {
+    motor1.setSpeed(speedSet);
+    motor2.setSpeed(speedSet);
+    motor3.setSpeed(speedSet);
+    motor4.setSpeed(speedSet);
+    delay(5);
+  }
+}
+void moveFwd() {              //this function is to move the car forward
+  motor1.run(FORWARD);
+  motor2.run(FORWARD);
+  motor3.run(FORWARD);
+  motor4.run(FORWARD);
+  for (int speedSet = 0; speedSet < MAX_SPEED; speedSet += 5) {
+    motor1.setSpeed(speedSet);
+    motor2.setSpeed(speedSet);
+    motor3.setSpeed(speedSet);
+    motor4.setSpeed(speedSet);
+    delay(5);
+  }
+}
